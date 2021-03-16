@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -107,11 +108,18 @@ func runView(opts *ViewOptions) error {
 	}
 
 	if opts.Web {
-		// TODO this goes to the workflow file in the repo which doesn't seem very useful; I'd think the more useful web target is a URL like https://github.com/cli/cli/actions/workflows/go.yml . unfortunately this is not in the API payload.
+		hostname := repo.RepoHost()
+		baseName := filepath.Base(workflow.Path)
+		workflowURL := fmt.Sprintf("https://%s/%s/actions/workflows/%s",
+			hostname,
+			ghrepo.FullName(repo),
+			baseName)
 		if opts.IO.IsStdoutTTY() {
-			fmt.Fprintf(opts.IO.Out, "Opening %s in your browser.\n", utils.DisplayURL(workflow.HTMLURL))
+			// TODO decide which one to use
+			//workflowURL := workflow.HTMLURL
+			fmt.Fprintf(opts.IO.Out, "Opening %s in your browser.\n", utils.DisplayURL(workflowURL))
 		}
-		return utils.OpenInBrowser(workflow.HTMLURL)
+		return utils.OpenInBrowser(workflowURL)
 	}
 
 	yaml, err := getWorkflowContent(client, repo, workflow)
