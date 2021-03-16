@@ -15,6 +15,7 @@ import (
 	"github.com/cli/cli/pkg/iostreams"
 	"github.com/cli/cli/pkg/markdown"
 	"github.com/cli/cli/pkg/prompt"
+	"github.com/cli/cli/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,7 @@ type ViewOptions struct {
 	BaseRepo   func() (ghrepo.Interface, error)
 
 	WorkflowID string
-	YAML       string
+	Web        bool
 
 	Prompt bool
 	Raw    bool
@@ -61,8 +62,6 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 				opts.Prompt = true
 			}
 
-			// TODO support --web
-
 			// TODO support --branch?
 			// Is this worth supporting in the first pass? I can't, for example, use
 			// this tool to view the workflow file for my prautomation branch without
@@ -74,6 +73,7 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 			return runView(opts)
 		},
 	}
+	cmd.Flags().BoolVarP(&opts.Web, "web", "w", false, "Open workflow in the browser")
 
 	return cmd
 }
@@ -104,6 +104,14 @@ func runView(opts *ViewOptions) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if opts.Web {
+		// TODO this goes to the workflow file in the repo which doesn't seem very useful; I'd think the more useful web target is a URL like https://github.com/cli/cli/actions/workflows/go.yml . unfortunately this is not in the API payload.
+		if opts.IO.IsStdoutTTY() {
+			fmt.Fprintf(opts.IO.Out, "Opening %s in your browser.\n", utils.DisplayURL(workflow.HTMLURL))
+		}
+		return utils.OpenInBrowser(workflow.HTMLURL)
 	}
 
 	yaml, err := getWorkflowContent(client, repo, workflow)
